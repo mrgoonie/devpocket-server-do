@@ -33,9 +33,9 @@ Transform your phone into a powerful development machine! Code, build, and deplo
 - Anyone wanting to code without a laptop
 
 **💰 Pricing:**
-- FREE: 1 environment, perfect for learning
-- STARTER ($19/mo): 3 environments, more power
-- PRO ($99/mo): Unlimited possibilities
+- STARTER ($19/mo): 3 environments with dedicated droplets
+- PRO ($99/mo): Unlimited environments, premium resources
+- 14-day free trial on all plans
 
 Start coding in 30 seconds - no laptop required! Join thousands of developers who've already made the switch to mobile coding.
 
@@ -67,10 +67,10 @@ The world's first mobile-native cloud IDE. Turn your phone into a powerful devel
 ## 💼 Investor Pitch Deck
 
 ### One-liner
-**"GitHub Codespaces meets mobile-first design"**
+**"GitHub Codespaces meets mobile-first design with dedicated DigitalOcean infrastructure"**
 
 ### Problem
-In 2025, 3 billion people have smartphones but only 500M have laptops. Developers in emerging markets, students, and digital nomads are locked out of coding due to hardware limitations. Current solutions like Replit are desktop-first, making mobile coding a painful afterthought.
+In 2025, 3 billion people have smartphones but only 500M have laptops. Developers in emerging markets, students, and digital nomads are locked out of coding due to hardware limitations. Current solutions like Replit are desktop-first with shared resources, making mobile coding a painful afterthought.
 
 ### Solution  
 DevPocket is the first cloud IDE built from the ground up for mobile devices. We provide full Linux environments accessible through native mobile apps, with touch-optimized interfaces and offline capabilities.
@@ -81,15 +81,15 @@ DevPocket is the first cloud IDE built from the ground up for mobile devices. We
 - SOM: $50M (Mobile-first developers in APAC)
 
 ### Traction
-- 10,000 beta users in 3 months
-- 15% free-to-paid conversion
-- $50K MRR growing 40% MoM
+- 2,000 paid users in 3 months
+- $38K MRR growing 40% MoM
+- 85% monthly retention rate
 - NPS score: 72
 
 ### Business Model
-SaaS subscription: Free/$19/$99 per month
-- 65% gross margins
-- $18 CAC, $180 LTV
+SaaS subscription: $19/$99 per month with 14-day trial
+- 50-65% gross margins
+- $25 CAC, $240 LTV
 - 10:1 LTV/CAC ratio
 
 ---
@@ -114,7 +114,7 @@ Key features include:
 
 Early adopters report 3x productivity gains when coding on-the-go, with the platform particularly popular among students and developers in Southeast Asia.
 
-DevPocket is now available on App Store and Google Play, with a free tier for students and hobbyists.
+DevPocket is now available on App Store and Google Play, with a 14-day free trial for all plans.
 
 ---
 
@@ -133,7 +133,7 @@ Ever been stuck without your laptop when inspiration strikes? We've all been the
 **What makes us different:**
 🎯 Native mobile experience (swipe to switch files!)
 ⚡ Instant environments (Python to production in 10 seconds)
-🌐 Full Linux access (yes, you can run Docker!)
+🌐 Full root access to your own cloud server (run anything!)
 💾 Everything synced to cloud
 🤝 Live collaboration (Google Docs for code)
 

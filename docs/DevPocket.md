@@ -7,9 +7,9 @@ Domain: DevPocket.app
 ## 🧐 Market & Competitor Insights
 
 - **Sweet Spot Pricing**
-  - FREE tier là MUST HAVE → Build community trước, monetize sau
   - $19 - $99: Perfect psychological pricing ladder  
     ↳ Rẻ hơn Replit 50% nhưng vẫn profitable (margin 40-60%)
+  - Focus on paid users from day 1 for sustainable growth
 
 ## 🏆 Unique Selling Points
 
@@ -21,8 +21,8 @@ Domain: DevPocket.app
 ## 🚀 Implementation Roadmap
 
 ### Phase 1 (MVP - 1 tháng)
-- Launch với FREE + STARTER tier
-- Focus vào core features: Terminal + Basic IDE
+- Launch với STARTER tier only (with 14-day free trial)
+- Focus vào core features: Terminal + Basic IDE via SSH
 - Soft launch với 100 beta users
 
 ### Phase 2 (Growth - 3 tháng)
@@ -45,9 +45,9 @@ Domain: DevPocket.app
 
 ## 📊 Reality Check
 
-- **Year 1:** 5-10K users, $20-50K MRR realistic
-- **Year 2:** 20-50K users, $100-250K MRR possible
-- **Exit opportunity:** $5-10M nếu growth tốt
+- **Year 1:** 2-5K paid users, $30-60K MRR realistic
+- **Year 2:** 10-20K paid users, $150-300K MRR possible
+- **Exit opportunity:** $10-20M với strong paid user base
 
 ## ⚠️ Cảnh Báo
 

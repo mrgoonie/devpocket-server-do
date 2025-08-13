@@ -18,14 +18,15 @@ This document provides a complete implementation guide for integrating WebSocket
 
 ## Overview
 
-The DevPocket WebSocket terminal provides real-time PTY (pseudo-terminal) access to development environments. The implementation supports:
+The DevPocket WebSocket terminal provides real-time PTY (pseudo-terminal) access to development environments via SSH bridge to DigitalOcean droplets. The implementation supports:
 
-- **Full PTY terminal emulation** with ANSI escape sequences
-- **Interactive programs** (vim, nano, htop, etc.)
-- **Real-time bidirectional communication** (input/output)
+- **Full PTY terminal emulation** with ANSI escape sequences via SSH
+- **Direct SSH access** to DigitalOcean droplets
+- **Interactive programs** (vim, nano, htop, tmux, etc.)
+- **Real-time bidirectional communication** (WebSocket ↔ SSH ↔ PTY)
 - **Terminal resize support** for responsive layouts
 - **Connection health monitoring** (ping/pong)
-- **Real-time installation progress** via WebSocket streaming
+- **Real-time installation progress** via cloud-init log streaming
 - **Proper cleanup and error handling**
 
 ## WebSocket API Specification
@@ -54,16 +55,26 @@ wss://{API_BASE_URL}/api/v1/ws/logs/{environment_id}?token={jwt_token}
 
 #### Terminal Connection Flow
 1. **Authentication**: JWT token validated on connection
-2. **Welcome Message**: Server sends environment details
-3. **Command Execution**: Client sends commands, server responds with output
-4. **Heartbeat**: Ping/pong messages for connection health
+2. **Droplet Lookup**: Server retrieves droplet IP from database
+3. **SSH Connection**: Server establishes SSH connection to droplet as `dev` user
+4. **User Authentication**: SSH login with user's password or SSH key
+5. **PTY Session**: Server creates PTY session in tmux for persistence
+6. **Bridge Setup**: Bidirectional bridge between WebSocket and SSH
+7. **Welcome Message**: Server sends environment details and available tools
+8. **Command Execution**: Commands forwarded through SSH to PTY as `dev` user
+9. **Heartbeat**: Ping/pong messages for connection health
 
-#### Installation Logs Connection Flow (NEW)
+#### Installation Logs Connection Flow
 1. **Authentication**: JWT token validated on connection
 2. **Status Check**: Server checks if environment is in INSTALLING status
-3. **Log Streaming**: Server streams real-time installation logs from Kubernetes pod
-4. **Completion**: Server sends completion message when installation finishes
-5. **Cleanup**: Proper disconnection and session cleanup
+3. **SSH Connection**: Server establishes SSH connection to droplet
+4. **Log Streaming**: Server streams multiple log sources:
+   - `/var/log/cloud-init-output.log` - Cloud-init progress
+   - `/var/log/devpocket-install.log` - Custom installation script
+   - `/home/dev/installation-progress.log` - Development tools setup
+5. **Installation Phases**: Tracks user creation, tool installation, configuration
+6. **Completion**: Server sends completion message when all tools are ready
+7. **Cleanup**: Proper disconnection and SSH session cleanup
 
 ## Flutter Dependencies
 
@@ -133,7 +144,7 @@ class AuthService {
 
 ## WebSocket Connection
 
-### WebSocket Service Implementation
+### WebSocket Service Implementation with SSH Bridge
 
 ```dart
 import 'dart:async';
@@ -148,6 +159,10 @@ class WebSocketTerminalService {
   StreamSubscription? _subscription;
   final StreamController<TerminalMessage> _messageController = StreamController.broadcast();
   final StreamController<ConnectionState> _connectionController = StreamController.broadcast();
+  
+  // SSH Bridge Information
+  String? _dropletIp;
+  bool _sshConnected = false;
   
   Timer? _pingTimer;
   bool _isConnected = false;
@@ -252,13 +267,16 @@ class WebSocketTerminalService {
   
   void _handleWelcomeMessage(Map<String, dynamic> message) {
     final environmentData = message['environment'] as Map<String, dynamic>?;
+    _dropletIp = environmentData?['droplet_ip'] as String?;
+    _sshConnected = message['ssh_connected'] as bool? ?? false;
+    
     final welcomeMessage = TerminalMessage.welcome(
       message: message['message'] as String? ?? 'Connected',
       environment: environmentData,
     );
     
     _messageController.add(welcomeMessage);
-    print('Connected to environment: ${environmentData?['name']}');
+    print('Connected to droplet: ${environmentData?['name']} at ${_dropletIp}');
   }
   
   void _handleOutputMessage(Map<String, dynamic> message) {
@@ -325,13 +343,27 @@ class WebSocketTerminalService {
 ```json
 {
   "type": "welcome",
-  "message": "Connected to goon",
+  "message": "Connected to development environment",
+  "ssh_connected": true,
+  "user": "dev",
   "environment": {
     "id": "68850093852e1ff1492d3d87",
-    "name": "goon",
+    "name": "my-dev-env",
     "status": "running",
-    "template": "ubuntu",
-    "pty_enabled": true
+    "droplet_id": 123456789,
+    "droplet_ip": "167.99.123.45",
+    "region": "nyc3",
+    "size": "s-1vcpu-1gb",
+    "pty_enabled": true,
+    "installed_tools": {
+      "docker": "24.0.7",
+      "git": "2.39.2",
+      "python": "3.11.6",
+      "node": "20.10.0",
+      "claude_code": "latest",
+      "gemini_cli": "latest",
+      "open_code": "latest"
+    }
   }
 }
 ```
@@ -406,12 +438,23 @@ The installation logs WebSocket endpoint (`/api/v1/ws/logs/{environment_id}`) pr
 {
   "type": "installation_log",
   "environment_id": "68850093852e1ff1492d3d87",
-  "data": "Get:1 http://archive.ubuntu.com/ubuntu jammy InRelease [270 kB]\n",
+  "phase": "user_setup",
+  "data": "Creating dev user with sudo privileges...\n",
+  "source": "cloud-init",
+  "progress": 15,
   "timestamp": "2025-07-30T05:23:45Z"
 }
 ```
 
-**Note**: Installation logs contain raw output from the container installation process, including package manager output and system configuration logs.
+**Installation Phases**:
+- `system_setup` (0-20%): Base system configuration
+- `user_setup` (20-30%): Creating dev user with password and sudo access
+- `core_tools` (30-60%): Installing docker, git, curl, python
+- `development_tools` (60-80%): Installing NVM, Node.js, pnpm, AI tools
+- `configuration` (80-95%): Setting up tmux, environment variables, permissions
+- `completion` (95-100%): Final setup and validation
+
+**Note**: Installation logs track comprehensive development environment setup including user creation and tool installation.
 
 #### 8. Installation Complete Message (Server → Client) - NEW
 ```json
@@ -931,7 +974,7 @@ class _PTYTerminalWidgetState extends State<PTYTerminalWidget> {
 
 ### Installation Logs WebSocket Service Implementation
 
-The logs WebSocket service is crucial for monitoring environment installation progress. Here's the complete implementation:
+The logs WebSocket service monitors cloud-init progress on DigitalOcean droplets during environment setup. Here's the complete implementation:
 
 **lib/services/installation_logs_websocket_service.dart:**
 ```dart
@@ -943,6 +986,9 @@ import 'storage_service.dart';
 
 class InstallationLogsWebSocketService {
   static const String _baseWsUrl = 'wss://devpocket-api.goon.vn';
+  
+  String? _dropletIp;
+  bool _cloudInitComplete = false;
   
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;

@@ -279,7 +279,7 @@ Resend email verification.
 ## Environment Management
 
 ### POST /api/v1/environments
-Create a new development environment using Kubernetes Deployments. **Returns immediately** with "creating" status while environment is provisioned asynchronously in the background with parallel resource creation for improved performance.
+Create a new development environment using DigitalOcean Droplets. **Returns immediately** with "creating" status while droplet is provisioned asynchronously in the background.
 
 **Authentication**: Required (Bearer token)  
 **Content-Type**: `application/json`
@@ -289,11 +289,10 @@ Create a new development environment using Kubernetes Deployments. **Returns imm
 {
   "name": "my-python-env",
   "template": "python",
-  "resources": {
-    "cpu": "500m",
-    "memory": "1Gi", 
-    "storage": "10Gi"
-  },
+  "region": "nyc3",
+  "size": "s-1vcpu-1gb",
+  "storage_size_gb": 10,
+  "user_password": "secure_user_password",
   "environment_variables": {
     "PYTHON_VERSION": "3.11"
   }
@@ -309,13 +308,13 @@ Create a new development environment using Kubernetes Deployments. **Returns imm
   "template_id": "507f1f77bcf86cd799439012",
   "template_name": "Python 3.11",
   "status": "creating",
-  "docker_image": "python:3.11-slim",
-  "port": 8080,
-  "resources": {
-    "cpu": "500m",
-    "memory": "1Gi",
-    "storage": "10Gi"  
-  },
+  "droplet_id": null,
+  "droplet_ip": null,
+  "ssh_port": 22,
+  "region": "nyc3",
+  "size": "s-1vcpu-1gb",
+  "storage_size_gb": 10,
+  "volume_id": null,
   "environment_variables": {
     "PYTHON_VERSION": "3.11"
   },
@@ -333,19 +332,31 @@ Create a new development environment using Kubernetes Deployments. **Returns imm
 
 **Asynchronous Environment Creation Process**:
 
-The environment creation follows a detailed status state machine with enhanced Kubernetes Deployment architecture:
+The environment creation follows a detailed status state machine with DigitalOcean Droplet architecture:
 
-1. **`creating`** - API responds immediately, environment queued for processing
-2. **`provisioning`** - Kubernetes resources created in parallel (PVC + ConfigMap simultaneously, then Deployment + Service)
-3. **`installing`** - Deployment starts container, packages and dependencies being installed via ConfigMap startup scripts
-4. **`configuring`** - Final configuration, environment variables, and startup scripts execution
-5. **`running`** - Deployment is healthy and ready, environment fully accessible via terminal
+1. **`creating`** - API responds immediately, droplet creation initiated with cloud-init user-data
+2. **`provisioning`** - DigitalOcean creating droplet and attaching volume
+3. **`installing`** - Cloud-init script running:
+   - Creates `dev` user with provided password and sudo privileges
+   - Installs core development tools (docker, git, curl, python, node.js)
+   - Installs AI coding tools (Claude Code, Gemini CLI, Open Code)
+   - Sets up tmux configuration and workspace
+4. **`configuring`** - Final configuration, environment setup, and user permissions
+5. **`running`** - Droplet is ready, SSH accessible as `dev` user, all tools installed
 
-**Architectural Improvements**:
-- **Self-Healing**: Kubernetes Deployments automatically restart failed pods
-- **Parallel Provisioning**: PVC and ConfigMap creation happen simultaneously for 30-50% faster deployment
-- **Enhanced Reliability**: Deployment controller ensures desired state is maintained
-- **Automatic Cleanup**: Failed deployments trigger automatic resource cleanup
+**User Setup**:
+- **`dev` User**: Created with authenticated user's password
+- **Sudo Access**: Full administrative privileges without password prompt
+- **SSH Access**: Direct login as `dev` user with password or SSH key
+- **Development Tools**: Pre-installed comprehensive development stack
+
+**Pre-installed Development Stack**:
+- **Core Tools**: docker, curl, git, wget, vim, nano, htop
+- **Languages**: Python 3.11+, Node.js (via NVM), latest stable versions
+- **Package Managers**: pip, npm, pnpm, yarn
+- **AI Coding Tools**: Claude Code CLI, Google Gemini CLI, Open Code
+- **Terminal**: tmux with optimized configuration for development
+- **System**: Ubuntu 22.04 LTS with essential build tools
 
 **Additional Status States**:
 - `stopped` - Environment is paused (can be restarted)
@@ -371,12 +382,15 @@ To monitor environment creation progress, use WebSocket endpoints:
 }
 ```
 
-**Improved Timeline** (with Deployment architecture):
+**Improved Timeline** (with Enhanced Development Stack):
 - **API Response**: Immediate (< 1 second)
-- **Provisioning**: 20-60 seconds (parallel resource creation, 30-50% faster)
-- **Installation**: 1-15 minutes (depends on template complexity)
-- **Total Time**: 1.5-16 minutes for full environment readiness
-- **Recovery Time**: 10-30 seconds for automatic pod restart on failure
+- **Droplet Creation**: 30-60 seconds (DigitalOcean provisioning)
+- **User Setup**: 30 seconds (dev user creation and sudo configuration)
+- **Core Installation**: 3-5 minutes (system packages, docker, git, python)
+- **Development Tools**: 2-4 minutes (NVM, Node.js, pnpm, AI tools)
+- **Configuration**: 1-2 minutes (tmux, environment setup, permissions)
+- **Total Time**: 7-13 minutes for complete development environment
+- **SSH Access**: Available as `dev` user once installation completes
 
 ### GET /api/v1/environments
 List user's development environments.
@@ -471,7 +485,7 @@ Delete an environment.
 **Response (204)**: No content
 
 ### POST /api/v1/environments/{environment_id}/start
-Start a stopped environment by scaling the Kubernetes Deployment.
+Start a stopped environment by powering on the DigitalOcean Droplet.
 
 **Authentication**: Required (Bearer token)
 
@@ -487,14 +501,15 @@ Start a stopped environment by scaling the Kubernetes Deployment.
 ```
 
 **Requirements**: Environment must be in `stopped` state
-**Mechanism**: Scales Kubernetes Deployment from 0 to 1 replicas
+**Mechanism**: Powers on the DigitalOcean Droplet via API
 **Benefits**: 
-- Faster startup (10-30 seconds vs 1-5 minutes for pod recreation)
-- Preserves Deployment configuration and persistent storage
-- Automatic health checks and restart policies
+- Fast startup (30-60 seconds)
+- Preserves all data and configuration
+- Maintains same IP address
+- No re-provisioning needed
 
 ### POST /api/v1/environments/{environment_id}/stop
-Stop a running environment by scaling down the Kubernetes Deployment.
+Stop a running environment by powering off the DigitalOcean Droplet.
 
 **Authentication**: Required (Bearer token)
 
@@ -510,12 +525,12 @@ Stop a running environment by scaling down the Kubernetes Deployment.
 ```
 
 **Requirements**: Environment must be in `running` state
-**Mechanism**: Scales Kubernetes Deployment from 1 to 0 replicas
+**Mechanism**: Powers off the DigitalOcean Droplet via API
 **Benefits**:
-- Graceful shutdown with proper resource cleanup
-- Preserves Deployment and Service configuration
-- Fast restart capability (scaling back to 1 replica)
-- Maintains persistent storage and network configuration
+- Graceful shutdown preserving all data
+- No billing for powered-off droplets (only storage)
+- Fast restart capability
+- Maintains all configuration and installed packages
 
 ### POST /api/v1/environments/{environment_id}/restart
 Restart an environment.
@@ -847,23 +862,29 @@ Initialize the system with default templates.
 - `403`: Forbidden - Admin access required
 - `500`: Internal server error
 
-## Cluster Management
+## DigitalOcean Resources Management
 
-### POST /api/v1/clusters
-Create a new Kubernetes cluster (Admin only).
+### GET /api/v1/regions
+Get available DigitalOcean regions for droplet deployment.
 
-**Authentication**: Required (Bearer token + Admin role)  
-**Content-Type**: `application/json`
+**Authentication**: Required (Bearer token)  
 
-**Request Body**:
+**Response (200)**:
 ```json
-{
-  "name": "production-cluster",
-  "description": "Production Kubernetes cluster",
-  "provider": "ovh",
-  "region": "GRA7",
-  "kubeconfig": "base64_encoded_kubeconfig_content"
-}
+[
+  {
+    "slug": "nyc3",
+    "name": "New York 3",
+    "available": true,
+    "features": ["private_networking", "backups", "ipv6", "metadata", "volumes"]
+  },
+  {
+    "slug": "sfo3",
+    "name": "San Francisco 3",
+    "available": true,
+    "features": ["private_networking", "backups", "ipv6", "metadata", "volumes"]
+  }
+]
 ```
 
 **Response (201)**:
@@ -882,78 +903,108 @@ Create a new Kubernetes cluster (Admin only).
 }
 ```
 
-### GET /api/v1/clusters
-List all clusters (Admin only).
+### GET /api/v1/sizes
+Get available droplet sizes with specifications and pricing.
 
-**Authentication**: Required (Bearer token + Admin role)
-
-**Response (200)**:
-```json
-[
-  {
-    "id": "507f1f77bcf86cd799439013",
-    "name": "production-cluster",
-    "description": "Production Kubernetes cluster",
-    "provider": "ovh",
-    "region": "GRA7",
-    "kubeconfig": "[ENCRYPTED]",
-    "status": "active",
-    "node_count": 3,
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-  }
-]
-```
-
-### GET /api/v1/clusters/regions
-Get available regions for cluster deployment (Admin only).
-
-**Authentication**: Required (Bearer token + Admin role)
+**Authentication**: Required (Bearer token)
 
 **Response (200)**:
 ```json
 [
   {
-    "name": "GRA7",
-    "display_name": "Gravelines 7",  
-    "country": "France",
-    "provider": "ovh"
+    "slug": "s-1vcpu-512mb-10gb",
+    "name": "Basic",
+    "memory": 512,
+    "vcpus": 1,
+    "disk": 10,
+    "transfer": 0.5,
+    "price_monthly": 4.0,
+    "price_hourly": 0.00595,
+    "tier": "free"
   },
   {
-    "name": "SBG5", 
-    "display_name": "Strasbourg 5",
-    "country": "France",
-    "provider": "ovh"
+    "slug": "s-1vcpu-1gb",
+    "name": "Starter",
+    "memory": 1024,
+    "vcpus": 1,
+    "disk": 25,
+    "transfer": 1.0,
+    "price_monthly": 6.0,
+    "price_hourly": 0.00893,
+    "tier": "starter"
+  },
+  {
+    "slug": "s-2vcpu-2gb",
+    "name": "Pro",
+    "memory": 2048,
+    "vcpus": 2,
+    "disk": 60,
+    "transfer": 3.0,
+    "price_monthly": 18.0,
+    "price_hourly": 0.02679,
+    "tier": "pro"
   }
 ]
 ```
 
-### GET /api/v1/clusters/{cluster_id}/health
-Check cluster health status (Admin only).
+### POST /api/v1/environments/{environment_id}/snapshot
+Create a snapshot of the environment's droplet for backup.
 
-**Authentication**: Required (Bearer token + Admin role)
+**Authentication**: Required (Bearer token)
 
 **Path Parameters**:
-- `cluster_id`: Cluster ID (ObjectId string)
+- `environment_id`: Environment ID (ObjectId string)
+
+**Request Body**:
+```json
+{
+  "name": "my-env-backup-2024-01-01"
+}
+```
+
+**Response (201)**:
+```json
+{
+  "snapshot_id": "123456789",
+  "name": "my-env-backup-2024-01-01",
+  "size_gb": 2.5,
+  "created_at": "2024-01-01T12:00:00Z",
+  "status": "pending"
+}
+```
+
+### POST /api/v1/environments/{environment_id}/resize
+Resize the droplet to a different size (vertical scaling).
+
+**Authentication**: Required (Bearer token)
+
+**Path Parameters**:
+- `environment_id`: Environment ID (ObjectId string)
+
+**Request Body**:
+```json
+{
+  "size": "s-2vcpu-2gb",
+  "permanent_disk_resize": false
+}
+```
 
 **Response (200)**:
 ```json
 {
-  "cluster_id": "507f1f77bcf86cd799439013",
-  "status": "healthy",
-  "nodes": 3,
-  "ready_nodes": 3,
-  "cpu_usage": 45.2,
-  "memory_usage": 67.8,
-  "storage_usage": 23.1,
-  "last_check": "2024-01-01T12:00:00Z"
+  "message": "Droplet resize initiated",
+  "new_size": "s-2vcpu-2gb",
+  "status": "resizing",
+  "estimated_time": "2-5 minutes"
 }
 ```
+
+**Note**: Droplet will be powered off during resize operation.
 
 ## WebSocket Endpoints
 
 ### WebSocket /api/v1/ws/terminal/{environment_id}
-Real-time terminal access to development environment.
+Real-time terminal access to development environment via SSH bridge.
 
 **Authentication**: JWT token via query parameter `?token=jwt_token`
 
@@ -961,6 +1012,12 @@ Real-time terminal access to development environment.
 ```
 wss://devpocket-api.goon.vn/api/v1/ws/terminal/507f1f77bcf86cd799439011?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
+
+**Connection Flow**:
+1. WebSocket connection authenticated with JWT
+2. Server retrieves droplet IP from database
+3. Server establishes SSH connection to droplet
+4. Bidirectional bridge between WebSocket and SSH PTY
 
 **Message Types**:
 
@@ -1183,13 +1240,13 @@ wss://devpocket-api.goon.vn/api/v1/ws/logs/507f1f77bcf86cd799439011?token=eyJ0eX
   "template_id": "string (ObjectId)",
   "template_name": "string",
   "status": "string (creating|installing|running|stopped|terminated|error)",
-  "docker_image": "string",
-  "port": "integer",
-  "resources": {
-    "cpu": "string",
-    "memory": "string", 
-    "storage": "string"
-  },
+  "droplet_id": "integer",
+  "droplet_ip": "string",
+  "ssh_port": "integer",
+  "region": "string",
+  "size": "string",
+  "storage_size_gb": "integer",
+  "volume_id": "string",
   "environment_variables": "object",
   "installation_completed": "boolean",
   "created_at": "string (ISO datetime)",
@@ -1231,17 +1288,20 @@ wss://devpocket-api.goon.vn/api/v1/ws/logs/507f1f77bcf86cd799439011?token=eyJ0eX
 }
 ```
 
-**Cluster Model**:
+**Droplet Model**:
 ```json
 {
   "id": "string (ObjectId)",
+  "environment_id": "string (ObjectId)",
+  "droplet_id": "integer",
   "name": "string",
-  "description": "string", 
-  "provider": "string",
+  "status": "string (new|active|off|archive)",
+  "ip_address": "string",
+  "private_ip": "string",
   "region": "string",
-  "kubeconfig": "string (encrypted)",
-  "status": "string (active|inactive|maintenance)",
-  "node_count": "integer",
+  "size": "string",
+  "image": "string",
+  "volume_ids": "array[string]",
   "created_at": "string (ISO datetime)",
   "updated_at": "string (ISO datetime)"
 }

@@ -22,7 +22,7 @@ Health check endpoint
 
 
 ### GET /health/live
-Liveness check for Kubernetes
+Liveness check for service
 - **Authentication:** Not required
 - **Returns:** Basic service availability status
 
@@ -128,13 +128,13 @@ Delete current user account
 ## Environments API
 
 ### POST /api/v1/environments
-Create a new development environment using Kubernetes Deployments
+Create a new development environment using DigitalOcean Droplets
 - **Authentication:** Required
-- **Body:** Environment creation data (name, template_id, etc.)
+- **Body:** Environment creation data (name, template_id, region, size, etc.)
 - **Returns:** Created environment object with "creating" status
 - **Status:** 201 Created
-- **Architecture:** Uses Kubernetes Deployments for self-healing capabilities
-- **Provisioning:** Parallel resource creation for faster deployment (PVC, ConfigMap, Deployment, Service)
+- **Architecture:** Uses DigitalOcean Droplets with full SSH access
+- **Provisioning:** Cloud-init scripts for automated setup and configuration
 
 ### GET /api/v1/environments
 List user's environments
@@ -162,20 +162,20 @@ Delete an environment
 - **Status:** 204 No Content
 
 ### POST /api/v1/environments/{environment_id}/start
-Start an environment by scaling Deployment to 1 replica
+Start an environment by powering on the droplet
 - **Authentication:** Required
 - **Returns:** Success message
 - **Note:** Environment must be in stopped state
-- **Mechanism:** Uses Kubernetes Deployment scaling (0→1 replicas) for fast startup
-- **Benefits:** Preserves configuration, faster than pod recreation, automatic restart on failure
+- **Mechanism:** Uses DigitalOcean API to power on the droplet
+- **Benefits:** Preserves all data and configuration, maintains IP address
 
 ### POST /api/v1/environments/{environment_id}/stop
-Stop an environment by scaling Deployment to 0 replicas
+Stop an environment by powering off the droplet
 - **Authentication:** Required
 - **Returns:** Success message
 - **Note:** Environment must be in running state
-- **Mechanism:** Uses Kubernetes Deployment scaling (1→0 replicas) for graceful shutdown
-- **Benefits:** Preserves Deployment configuration and persistent storage for quick restart
+- **Mechanism:** Uses DigitalOcean API to power off the droplet
+- **Benefits:** Preserves all data, no billing for powered-off droplets (only storage)
 
 ### POST /api/v1/environments/{environment_id}/restart
 Restart an environment
@@ -234,105 +234,95 @@ Initialize default templates (Admin only)
 - **Authentication:** Admin required
 - **Returns:** Success message
 
-## Clusters API
-Manage Kubernetes clusters for environment deployment.
+## DigitalOcean Resources API
+Manage DigitalOcean resources for environment deployment.
 
-### POST /api/v1/clusters
-Create a new cluster
-- **Authentication:** Admin required
-- **Body:** Cluster configuration data
-- **Returns:** Created cluster object
+### GET /api/v1/regions
+Get available DigitalOcean regions
+- **Authentication:** Required
+- **Returns:** Array of available regions with features
+
+### GET /api/v1/sizes
+Get available droplet sizes
+- **Authentication:** Required
+- **Returns:** Array of droplet sizes with pricing and specifications
+
+### POST /api/v1/environments/{environment_id}/snapshot
+Create a snapshot of the environment's droplet
+- **Authentication:** Required
+- **Body:** Snapshot name
+- **Returns:** Snapshot object with ID and status
 - **Status:** 201 Created
 
-### GET /api/v1/clusters
-List all clusters
-- **Authentication:** Admin required
-- **Returns:** Array of cluster objects
-
-### GET /api/v1/clusters/regions
-Get available regions for cluster deployment
-- **Authentication:** Admin required
-- **Returns:** Array of available regions
-
-### GET /api/v1/clusters/{cluster_id}
-Get specific cluster details
-- **Authentication:** Admin required
-- **Returns:** Cluster object with full details
-
-### PUT /api/v1/clusters/{cluster_id}
-Update an existing cluster
-- **Authentication:** Admin required
-- **Body:** Cluster update data
-- **Returns:** Updated cluster object
-
-### DELETE /api/v1/clusters/{cluster_id}
-Delete a cluster
-- **Authentication:** Admin required
-- **Returns:** Success message
-- **Status:** 204 No Content
-
-### GET /api/v1/clusters/{cluster_id}/health
-Check cluster health status
-- **Authentication:** Admin required
-- **Returns:** Cluster health check results
+### POST /api/v1/environments/{environment_id}/resize
+Resize the droplet to a different size
+- **Authentication:** Required
+- **Body:** New size specification
+- **Returns:** Resize status
+- **Note:** Droplet will be powered off during resize
 
 ## WebSocket API
 Real-time communication endpoints for terminal and log streaming.
 
 ### WebSocket /api/v1/ws/terminal/{environment_id}
-Terminal access to environment
+Terminal access to environment via SSH bridge
 - **Authentication:** JWT token via query parameter `?token=jwt_token`
+- **Connection:** WebSocket-to-SSH bridge to droplet
 - **Messages:**
   - `{"type": "input", "data": "command\n"}` - Send terminal input
   - `{"type": "resize", "cols": 80, "rows": 24}` - Resize terminal
   - `{"type": "ping"}` - Keepalive (responds with pong)
-- **Returns:** Real-time terminal output
+- **Returns:** Real-time terminal output from SSH session
 
 ### WebSocket /api/v1/ws/logs/{environment_id}
-Real-time log streaming from environment, including installation logs
+Real-time log streaming from environment, including cloud-init logs
 - **Authentication:** JWT token via query parameter `?token=jwt_token`
+- **Connection:** SSH connection to stream cloud-init logs
 - **Messages:**
   - `{"type": "ping"}` - Keepalive (responds with pong)
-- **Returns:** Real-time log output and installation progress
+- **Returns:** Real-time log output from cloud-init process
 - **Message Types:**
-  - `installation_log` - Log lines from installation process
-  - `installation_complete` - Installation completed successfully
-  - `installation_status` - Installation status updates
-  - `installation_error` - Installation error messages
+  - `installation_log` - Log lines from cloud-init process
+  - `installation_complete` - Cloud-init completed successfully
+  - `installation_status` - Cloud-init status updates
+  - `installation_error` - Cloud-init error messages
 
 ## Default Templates
 
-The system includes these default templates:
+All templates include a comprehensive development stack pre-installed:
 
-### Python 3.11
-- **Image:** python:3.11-slim
-- **Port:** 8080
-- **Includes:** pip, virtualenv, Flask, Django support
-- **Resources:** 500m CPU, 1Gi memory, 10Gi storage
+**Base Development Stack (All Templates)**:
+- **System:** Ubuntu 22.04 LTS with `dev` user (sudo privileges)
+- **Core Tools:** docker, curl, git, wget, vim, nano, htop, tmux
+- **Languages:** Python 3.11+, Node.js LTS (via NVM)
+- **Package Managers:** pip, npm, pnpm, yarn
+- **AI Tools:** Claude Code CLI, Google Gemini CLI, Open Code
+- **Terminal:** Pre-configured tmux with development optimizations
 
-### Node.js 18 LTS
-- **Image:** node:18-slim
-- **Port:** 3000
-- **Includes:** npm, yarn, Express, React, Vue support
-- **Resources:** 500m CPU, 1Gi memory, 10Gi storage
+### Python Development
+- **Base:** Ubuntu 22.04 + Development Stack
+- **Additional:** virtualenv, pipenv, poetry, Flask, Django support
+- **Python Version:** 3.11+ (configurable)
+- **Default Port:** 8080
 
-### Go 1.21
-- **Image:** golang:1.21-alpine
-- **Port:** 8080
-- **Includes:** Go compiler, air for hot reload
-- **Resources:** 500m CPU, 1Gi memory, 10Gi storage
+### Node.js Development
+- **Base:** Ubuntu 22.04 + Development Stack 
+- **Additional:** Express, React, Vue tooling, PM2, nodemon
+- **Node Version:** LTS (via NVM, configurable)
+- **Default Port:** 3000
 
-### Rust Latest
-- **Image:** rust:latest
-- **Port:** 8080
-- **Includes:** rustc, cargo, cargo-watch
-- **Resources:** 1000m CPU, 2Gi memory, 15Gi storage
+### Full-Stack Development
+- **Base:** Ubuntu 22.04 + Development Stack
+- **Additional:** PostgreSQL, Redis, nginx setup scripts
+- **Databases:** Client tools for PostgreSQL, MySQL, MongoDB
+- **Default Port:** 8080
 
-### Ubuntu 22.04 LTS
-- **Image:** ubuntu:22.04
-- **Port:** 8080
-- **Includes:** Essential development tools
-- **Resources:** 500m CPU, 1Gi memory, 10Gi storage
+### Coding Agents (Premium)
+- **Base:** Ubuntu 22.04 + Development Stack
+- **Additional:** Claude Code, Gemini CLI, Open Code pre-configured
+- **Features:** AI-powered coding assistance, code generation
+- **Optimized:** For AI-assisted development workflows
+- **Default Port:** 8080
 
 ## Response Formats
 
@@ -361,19 +351,15 @@ The system includes these default templates:
   "template_id": "string",
   "template_name": "string",
   "status": "running",
-  "docker_image": "string",
-  "port": 8080,
-  "web_port": 3000,
-  "resources": {
-    "cpu": "500m",
-    "memory": "1Gi", 
-    "storage": "10Gi"
-  },
+  "droplet_id": 123456789,
+  "droplet_ip": "167.99.123.45",
+  "ssh_port": 22,
+  "region": "nyc3",
+  "size": "s-1vcpu-1gb",
+  "storage_size_gb": 10,
+  "volume_id": "vol-123456",
   "environment_variables": {},
   "installation_completed": true,
-  "kubernetes_namespace": "devpocket-user-123",
-  "kubernetes_deployment_name": "env-abc123",
-  "kubernetes_service_name": "svc-abc123",
   "cpu_usage": 0.25,
   "memory_usage": 0.45,
   "storage_usage": 0.10,
@@ -411,17 +397,20 @@ The system includes these default templates:
 }
 ```
 
-### Cluster Object
+### Droplet Object
 ```json
 {
   "id": "string",
+  "environment_id": "string",
+  "droplet_id": 123456789,
   "name": "string",
-  "description": "string",
-  "provider": "ovh",
-  "region": "string",
-  "kubeconfig": "encrypted_string",
   "status": "active",
-  "node_count": 3,
+  "ip_address": "167.99.123.45",
+  "private_ip": "10.132.0.2",
+  "region": "nyc3",
+  "size": "s-1vcpu-1gb",
+  "image": "ubuntu-22-04-x64",
+  "volume_ids": ["vol-123456"],
   "created_at": "2024-01-01T00:00:00Z",
   "updated_at": "2024-01-01T00:00:00Z"
 }

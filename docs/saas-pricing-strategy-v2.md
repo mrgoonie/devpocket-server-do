@@ -1,78 +1,70 @@
-## 💰 **MyPod.Dev Pricing Strategy 2025** - Powered by DigitalOcean
+## 💰 **DevPocket Pricing Strategy 2025** - Powered by DigitalOcean
 
-### 🆓 **FREE TIER** - "Playground"
-**$0/month**
+### 🎯 **NO FREE TIER APPROACH**
 
-**Specs:**
-- ✅ 1 shared environment (1 vCPU, 2GB RAM)
-- ✅ 5GB storage 
-- ✅ 100MB/month bandwidth
-- ✅ Max 1 hour continuous session
-- ✅ Auto-sleep sau 15 phút idle
-- ✅ Public projects only
-- ✅ Basic languages (Python, JS, HTML/CSS)
-- ❌ No persistent storage
-- ❌ No custom domains
-- ❌ No SSH access
+**Strategy**: Focus on dedicated droplets for all users, providing premium experience from day 1
 
-**Cost Structure:**
-- Infrastructure: ~$0.50/user (shared resources)
-- Support: Community only
-- **Gross Margin**: N/A (loss leader để build community)
+**Benefits**:
+- No shared resource contention
+- Premium user experience
+- Sustainable unit economics
+- Higher retention rates
+- Clear value proposition
 
-**Target**: Students, learners, người mới tìm hiểu
+**Trial**: 14-day free trial on all plans with full feature access
 
 ---
 
 ### 🚀 **STARTER** - "Developer" 
-**$19/month** (hoặc $190/year - save 20%)
+**$19/month** (or $190/year - save 20%)
 
 **Specs:**
-- ✅ 3 environments đồng thời
-- ✅ 2 vCPUs, 4GB RAM per environment
-- ✅ 20GB persistent SSD storage 
+- ✅ 3 dedicated DigitalOcean droplets
+- ✅ 1 vCPU, 1GB RAM per droplet (s-1vcpu-1gb)
+- ✅ 25GB NVMe SSD storage per droplet
 - ✅ 1TB/month bandwidth
 - ✅ Unlimited session time
 - ✅ Private projects
-- ✅ Full terminal access
+- ✅ Full SSH terminal access
 - ✅ Git integration + GitHub/GitLab sync
-- ✅ SSH/SFTP access
-- ✅ Custom subdomains (*.mypod.dev)
+- ✅ Custom subdomains (*.devpocket.app)
 - ✅ All programming languages
-- ✅ Docker support (limited)
+- ✅ Full Docker & root access
 - ✅ Email support (24h response)
-- ✅ Auto-backup daily
+- ✅ Daily snapshots
 
 **Cost Structure:**
 ```
 Infrastructure per user:
-- 3x Basic Droplet (2vCPU, 2GB): $18 x 0.3 usage = $5.40
-- Storage 20GB: $2.00
-- Bandwidth & overhead: $1.60
-Total Cost: ~$9.00
-Gross Margin: 52.6% ✅
+- 3x s-1vcpu-1gb Droplet: $6 x 3 x 0.4 usage = $7.20
+- Storage 75GB: $7.50
+- Bandwidth & overhead: $1.50
+Total Cost: ~$16.20
+Gross Margin: 14.7%
 ```
+
+**Entry-level pricing to attract users, optimize for retention**
 
 **Target**: Individual developers, freelancers, hobbyists
 
 ---
 
 ### 💎 **PRO** - "Professional"
-**$99/month** (hoặc $990/year - save 20%)
+**$99/month** (or $990/year - save 20%)
 
 **Specs:**
 - ✅ **Unlimited environments** 
-- ✅ 4 vCPUs, 8GB RAM per environment
-- ✅ 100GB NVMe SSD storage
+- ✅ 2 vCPUs, 2GB RAM per environment (s-2vcpu-2gb)
+- ✅ 60GB NVMe SSD storage per environment
 - ✅ 5TB/month bandwidth
-- ✅ GPU access (1 hour/day included)
-- ✅ Advanced Docker & Kubernetes
-- ✅ Database provisioning (PostgreSQL, MySQL, Redis)
-- ✅ Port forwarding & tunneling
-- ✅ Custom domains với SSL
+- ✅ GPU droplets available (pay-per-hour)
+- ✅ Full root access & Docker
+- ✅ Database droplet templates (PostgreSQL, MySQL, Redis)
+- ✅ Port forwarding & SSH tunneling
+- ✅ Custom domains with SSL
 - ✅ Team collaboration (up to 3 users)
 - ✅ Advanced Git workflows
-- ✅ CI/CD pipelines 
+- ✅ CI/CD pipeline templates
 - ✅ Priority support (4h response)
 - ✅ 99.9% uptime SLA
 - ✅ Hourly snapshots
@@ -82,11 +74,11 @@ Gross Margin: 52.6% ✅
 ```
 Infrastructure per user:
 - Avg 5 active environments
-- General Purpose Droplets: $24 x 5 x 0.3 = $36
-- Storage 100GB: $10
-- Bandwidth & services: $4
-Total Cost: ~$50
-Gross Margin: 49.5% ≈ 50% ✅
+- s-2vcpu-2gb Droplets: $18 x 5 x 0.4 = $36
+- Storage 300GB: $30
+- Bandwidth & services: $6
+Total Cost: ~$72
+Gross Margin: 27.3%
 ```
 
 **Target**: Professional developers, small teams, agencies
@@ -150,17 +142,17 @@ Payment methods:
 
 ### Conservative Case:
 ```
-Month 1: 100 users (90 free, 8 starter, 2 pro) = $350 MRR
-Month 3: 500 users (70% free, 25% starter, 5% pro) = $2,750 MRR
-Month 6: 2,000 users (60% free, 30% starter, 10% pro) = $14,200 MRR
-Month 12: 5,000 users (50% free, 35% starter, 15% pro) = $48,150 MRR
+Month 1: 50 paid users (40 starter, 10 pro) = $1,750 MRR
+Month 3: 200 paid users (160 starter, 40 pro) = $7,000 MRR
+Month 6: 800 paid users (600 starter, 200 pro) = $31,200 MRR
+Month 12: 2,000 paid users (1,400 starter, 600 pro) = $85,600 MRR
 ```
 
 ### Optimistic Case:
 ```
-Month 6: 3,000 users = $25,000 MRR
-Month 12: 10,000 users = $95,000 MRR
-Year 2: 30,000 users = $350,000 MRR
+Month 6: 1,500 paid users = $50,000 MRR
+Month 12: 5,000 paid users = $150,000 MRR
+Year 2: 15,000 paid users = $500,000 MRR
 ```
 
 ---
@@ -187,9 +179,9 @@ Year 2: 30,000 users = $350,000 MRR
 ## 🚀 **Implementation Roadmap**
 
 **Phase 1 (Month 1-2)**: 
-- Launch với Free + Starter only
-- Focus vào core features
-- 100 beta users feedback
+- Launch với Starter tier only + 14-day trial
+- Focus vào core SSH features
+- 50 paying users feedback
 
 **Phase 2 (Month 3-4)**:
 - Introduce Pro tier
