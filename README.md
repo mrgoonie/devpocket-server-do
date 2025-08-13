@@ -97,14 +97,14 @@ Your environment is now ready with:
 - **FastAPI Server**: REST API and WebSocket endpoints
 - **DigitalOcean Integration**: Droplet and volume management
 - **SSH Bridge**: WebSocket-to-SSH proxy for terminal access
-- **MongoDB**: User data, environment metadata, templates
+- **PostgreSQL**: User data, environment metadata, templates
 - **Authentication**: JWT with refresh tokens, Google OAuth
 - **Rate Limiting**: In-memory rate limiting per user
 
 ## 🛠️ Tech Stack
 
 - **Backend**: FastAPI, Python 3.11+
-- **Database**: MongoDB (Motor async driver)
+- **Database**: PostgreSQL (asyncpg with SQLAlchemy async)
 - **Infrastructure**: DigitalOcean Droplets, Block Storage
 - **Authentication**: JWT, OAuth2, bcrypt
 - **Networking**: asyncssh, WebSockets
@@ -114,7 +114,7 @@ Your environment is now ready with:
 ## 📋 Prerequisites
 
 - Python 3.11+
-- MongoDB (local or cloud)
+- PostgreSQL (local or cloud)
 - DigitalOcean account with API token
 - SSH key pair for droplet access
 
@@ -140,8 +140,7 @@ Create `.env` file:
 
 ```env
 # Database
-MONGODB_URL=mongodb://localhost:27017
-DATABASE_NAME=devpocket_server
+DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/devpocket_server
 
 # Security
 SECRET_KEY=your-secret-key-here
@@ -165,10 +164,10 @@ ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 ### 3. Database Setup
 
 ```bash
-# Start MongoDB (if running locally)
-mongod
+# Start PostgreSQL (if running locally)
+sudo systemctl start postgresql
 
-# Initialize database (optional - will be created automatically)
+# Initialize database (create tables and indexes)
 python -c "from app.core.database import init_database; import asyncio; asyncio.run(init_database())"
 ```
 
@@ -198,10 +197,10 @@ app/
 ├── main.py                 # FastAPI application entry point
 ├── core/                   # Core infrastructure
 │   ├── config.py           # Settings and configuration
-│   ├── database.py         # MongoDB connection and setup
+│   ├── database.py         # PostgreSQL connection and SQLAlchemy setup
 │   ├── security.py         # JWT, password hashing, security
 │   └── logging.py          # Structured logging
-├── models/                 # Pydantic data models
+├── models/                 # SQLAlchemy ORM models and Pydantic schemas
 │   ├── user.py             # User and authentication models
 │   └── environment.py      # Environment and droplet models
 ├── services/               # Business logic layer
@@ -336,8 +335,7 @@ docker-compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MONGODB_URL` | MongoDB connection string | `mongodb://localhost:27017` |
-| `DATABASE_NAME` | Database name | `devpocket_server` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://user:pass@localhost:5432/devpocket_server` |
 | `SECRET_KEY` | JWT secret key | - |
 | `DO_API_TOKEN` | DigitalOcean API token | - |
 | `DO_DEFAULT_REGION` | Default droplet region | `nyc3` |
@@ -418,7 +416,7 @@ Key metrics to monitor:
 
 ### Manual Deployment
 
-1. Set up MongoDB (managed or self-hosted)
+1. Set up PostgreSQL (managed or self-hosted)
 2. Configure environment variables
 3. Run database migrations
 4. Deploy with docker-compose or Kubernetes
@@ -498,7 +496,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **FastAPI** - Modern Python web framework
 - **DigitalOcean** - Cloud infrastructure provider
-- **MongoDB** - Document database
+- **PostgreSQL** - Relational database with async support
 - **Tmux** - Terminal multiplexer for session persistence
 
 ---

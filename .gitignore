@@ -97,7 +97,7 @@ logs/
 *.sqlite3
 
 # Docker volumes
-mongo-data/
+posgres-data/
 redis-data/
 prometheus-data/
 grafana-data/

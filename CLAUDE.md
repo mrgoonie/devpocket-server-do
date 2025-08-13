@@ -15,10 +15,10 @@ app/
 ├── main.py              # FastAPI application entry point with middleware
 ├── core/                # Core infrastructure components
 │   ├── config.py        # Pydantic settings with environment variables
-│   ├── database.py      # MongoDB async connection and indexing
+│   ├── database.py      # PostgreSQL async connection and SQLAlchemy setup
 │   ├── security.py      # JWT, password hashing, security headers
 │   └── logging.py       # Structured logging with structlog
-├── models/              # Pydantic data models
+├── models/              # SQLAlchemy ORM models and Pydantic schemas
 │   ├── user.py          # User, authentication, and subscription models
 │   └── environment.py   # Development environment and resource models
 ├── services/            # Business logic layer
@@ -37,7 +37,7 @@ app/
 
 **Dependency Injection**: FastAPI's `Depends()` system is used throughout for database connections, authentication, and service injection. Services require `set_database()` calls to initialize database connections.
 
-**Async/Await**: All I/O operations are asynchronous using Motor (async MongoDB driver), httpx for external API calls, and asyncssh for SSH connections to droplets.
+**Async/Await**: All I/O operations are asynchronous using asyncpg with SQLAlchemy (async PostgreSQL driver), httpx for external API calls, and asyncssh for SSH connections to droplets.
 
 **Service Layer Pattern**: Business logic is separated into service classes (`auth_service`, `environment_service`, `digitalocean_service`) that are injected into API routes.
 
