@@ -24,17 +24,17 @@ DevPocket Server is a production-ready FastAPI backend that provides secure, sca
 
 ## 🏗️ Architecture
 
-```
-Mobile App ↔ FastAPI Server ↔ DigitalOcean API
-                    ↓
-        WebSocket-SSH Bridge ↔ Droplet (SSH as 'dev' user)
-                              ↓
-                          Development Environment
-                          • Ubuntu 22.04 LTS
-                          • 'dev' user with sudo access
-                          • Complete development stack
-                          • Persistent storage
-                          • AI coding tools
+```mermaid
+flowchart TD
+   A[Mobile App] <--> B[FastAPI Server] <--> C[DigitalOcean API]
+   B --> D[WebSocket-SSH Bridge]
+   D <--> E[Droplet (SSH as 'dev' user)]
+   E --> F[Development Environment]
+   F --> F1[Ubuntu 22.04 LTS]
+   F --> F2['dev' user with sudo access]
+   F --> F3[Complete development stack]
+   F --> F4[Persistent storage]
+   F --> F5[AI coding tools]
 ```
 
 ## 🚀 Environment Creation Workflow
